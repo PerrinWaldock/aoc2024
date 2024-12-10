@@ -5,6 +5,8 @@ import os
 from tqdm import tqdm
 import itertools
 
+# would be faster to only store the disk as a number of contiguous blocks
+
 filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt")
 #filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample.txt")
 #filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample2.txt")
@@ -26,7 +28,7 @@ for id, (blocks, freespace) in enumerate(zip(line[::2], line[1::2])):
 	locations.append(locations[-1]+blocks+freespace)
 disk = np.array(disk)
 totaldiskspace = np.sum(allblocks)
-allblocks = list(allblocks) #look up size of ID here
+allblocks = list(allblocks)
 locations = list(locations)
 
 def findFirstSpaceLargerThan(d, s):
