@@ -9,7 +9,7 @@ filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt"
 # filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample.txt") #80
 # filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample2.txt") # 1206
 # filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample3.txt") #236
-# filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample4.txt") #368
+filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample4.txt") #368
 # filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample5.txt") #436
 	
 lines = deque()
@@ -62,6 +62,7 @@ def isEdgeVertex(x,y,region):
 	externalOrEdgeSquares = [p for p in points if not inRange(*p) or not p in region]
 	return 4 > len(externalOrEdgeSquares) > 0
 
+# pretty sure this is working
 def getEdgeVerticesInRegion(region):
 	edgeVertices = set()
 	for (x,y) in region:
@@ -70,33 +71,78 @@ def getEdgeVerticesInRegion(region):
 				edgeVertices.add((vx,vy))
 	return edgeVertices
 
-def isConnectedEdge(x1,y1,x2,y2,value):
+def isEdge(x1,y1,x2,y2):
 	x,y=((x1+x2)/2,(y1+y2)/2)
-	dx,dy=((x2-x1),(y2-y1))
-	(xr,yr) = (int(x + dy/2),int(y - dx/2))
-	(xl,yl) = (int(x - dy/2),int(y + dx/2))
-	leftisvalue = inRange(xl,yl) and array[xl,yl] == value
-	rightisvalue = inRange(xr,yr) and array[xr,yr] == value
-	return leftisvalue ^ rightisvalue
-
-def countCornerVertex(x, y, value, allVertices):
-	points = [(x-1,y),(x,y+1),(x+1,y),(x,y-1)]
-	connectedPoints = [p for p in points if p in allVertices and isConnectedEdge(x,y,*p,value)]
-	if (len(connectedPoints) == 2 and (np.sqrt((connectedPoints[0][0]-connectedPoints[1][0])**2 + (connectedPoints[0][1]-connectedPoints[1][1])**2) != 2)):
-		return 1
-	elif len(connectedPoints) == 4:
-		return 2
+	dx,dy=((x2-x1),(y2-y1)) #whichever one == 0, want the opposite for squares
+	# print(x1,y1,x2,y2,x,y)
+	if dy != 0:
+		xa = int(x+.5)
+		xb = int(x-.5)
+		ya = int(y)
+		yb = int(y)
+	elif dx != 0:
+		ya = int(y+.5)
+		yb = int(y-.5)
+		xa = int(x)
+		xb = int(x)
 	else:
-		return 0
+		return False
+	return not inRange(xa,ya) or not inRange(xb,yb) or array[xa,ya] != array[xb,yb]
+		
+def nextValidVertices(x,y,allVertices,invalid):
+	points = [(x-1,y),(x+1,y),(x,y-1),(x,y+1)]
+	points = [p for p in points if not p in invalid and p in allVertices and isEdge(x,y,*p)]
+	return points
+
+def getCornerVertex(edgeVertices):
+	return min(list(edgeVertices), key=lambda x: -x[0]-x[1])
 
 def countSidesInRegion(region):
 	edgeVertices = getEdgeVerticesInRegion(region)
-	value = getValue(region)
+	traversed = set()
+	direction = (0,0)
 	sides = 0
-	for v in edgeVertices:
-		newVertices = countCornerVertex(*v,value,edgeVertices)
-		sides += newVertices
+	(x,y) = getCornerVertex(edgeVertices) #need to start in a corner or the algorithm won't work
+	startPoint = (x,y)
+	iteration = 0
+	while len(edgeVertices) > 0:
+		validNextSteps = nextValidVertices(x,y,edgeVertices,traversed) 
+		print((x,y), sides, validNextSteps, traversed, edgeVertices, end="\n\n")
+		if startPoint in validNextSteps and len(validNextSteps) > 1:
+			print("skipped!")
+			validNextSteps.remove(startPoint)
+   
+		if len(validNextSteps) > 0:
+			(xn,yn) = validNextSteps.pop()
+			edgeVertices.remove((xn,yn))
+			newdirection = (xn-x,yn-y)
+			if newdirection != direction:
+				sides += 1
+			direction = newdirection
+		else: #
+			(xn,yn) = getCornerVertex(edgeVertices)
+			direction = (0,0)
+			startPoint = (xn,yn)
+		if (x,y) == (xn,yn):
+			break
+		(x,y) = (xn,yn)
+		traversed.add((x,y)) #only add new point
+  
+		iteration += 1
+		if iteration > 50:
+			break
 	return sides
+
+# want A: 4 B 4 C 8 D 4 E 4	
+
+# if "sample2.txt" in filename:
+# 	order = [c for c in "RICFVJCEIMS"]
+# 	def orderer(r):
+# 		r = list(r)
+# 		value = array[*r[0]]
+# 		return order.index(value)
+# 	regions = sorted(regions, key=orderer)
+
 		
 pointsToAllocate = set(tuple(p) for p in np.argwhere(array != "."))
 regions = deque()
@@ -110,9 +156,16 @@ while len(pointsToAllocate) > 0:
 
 sum = 0
 for region in regions:
+	# if getValue(region) != "M":
+	# 	continue
 	edgeVertices = getEdgeVerticesInRegion(region)
 	sides = countSidesInRegion(region)
 	area = getArea(region)
 	print(getValue(region), area, sides)
 	sum += sides*area
 print(sum)
+
+# 891681 is too low
+# 890296 also too low (using top left corner)
+# 893451 too low (using bottom right corner)
+# 541592 too low
