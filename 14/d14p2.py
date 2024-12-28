@@ -9,7 +9,7 @@ import dataclasses
 from typing import Any
 
 filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt")
-# filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample.txt")
+filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample.txt")
 
 ITERATIONS = 100
 if "sample" in filename:
@@ -79,8 +79,3 @@ while iteration < 15000:
     for robot in robots:
         robot.iterate()
     iteration += 1
-    
-
-#TODO print out picture of each of the robots, see if it forms anything christmas-tree like after each step?
-# the pattern may repeat at 10403? we at least see duplicate positions
-# may just want to count number of robots in a space to see when they get dense enough to form a tree?
