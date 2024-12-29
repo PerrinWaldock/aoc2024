@@ -7,10 +7,6 @@ import itertools
 import sys
 from functools import cache
 
-"""
-TODO revert to previous version (see github), but add different path finding for keypad vs arrows
-"""
-
 import dataclasses
 from typing import Any
 
@@ -21,11 +17,12 @@ keypad = np.array([	['7', '8', '9'],
 arrows = np.array([['', '^', 'A'],
                    ['<', 'v', '>']])
 
-maps = {"keypad": keypad, "arrows": arrows}
-
 def createLookup(arr):
     symbols = set(np.ravel(arr))
     return {s: tuple(np.argwhere(arr == s)[0]) for s in symbols}
+
+maps = {"keypad": keypad, "arrows": arrows}
+lookups = {k: createLookup(v) for k,v in maps.items()}
 
 def addtuple(a, b):
     return (a[0]+b[0], a[1]+b[1])
@@ -59,53 +56,58 @@ def getAllPathsBetween(start, end, mapkey):
         returnPaths.extend(["<"+p for p in getAllPathsBetween(newstart, end, mapkey)])
     return returnPaths    
 
-class Robot:
-    def __init__(self, mapkey, startsymbol='A'):
-        self.mapkey = mapkey
-        self.lookup = createLookup(maps[mapkey])
-        self.position = self.lookup[startsymbol]
-    
-    #turns number or arrow into sets of sequences of arrows.
-    def getAllCommandsTo(self, symbol):
-        destination = self.lookup[symbol]
-        retval = getAllPathsBetween(self.position, destination, self.mapkey)
-        self.position = destination
-        return retval
-    
-    #don't want to do all at once because many extra paths will be generated
-
-#TODO this can be modified to be cached?
 @cache
-def getShortestCommandsForSymbol(robots, symbol):
-    commandsequences = robots[0].getAllCommandsTo(symbol)
-    if len(robots) == 1:
-        return commandsequences
-    newsequences = []
-    for sequence in commandsequences:
-        for s in sequence:
-            newsequences.extend(getShortestCommandsForSymbol(robots[1:], s)) #TODO need to think VERY carefully about whether robot positions are being preserved correctly
-    shortestlength = min([len(sequence) for sequence in newsequences])
-    return [sequence for sequence in newsequences if len(sequence) == shortestlength]
+def getAllPathsBetweenSymbols(startsymbol, endsymbol, mapkey):
+    start = lookups[mapkey][startsymbol]
+    end = lookups[mapkey][endsymbol]
+    return getAllPathsBetween(start, end, mapkey)
 
-def getShortestCommandsForSequence(robots, sequence):
-    #TODO do the same as above but for the full sequence
-    #TODO think carefully about whether robot positions are preserved. Start and End are the same, but will the middles cause problems?
-    #need to reset robot positions after each?
-    possiblesequences = []
-    for s in sequence:
-        possiblesequences.append(getShortestCommandsForSymbol(robots, s))
-    #count min length for each sequence?
+#should be list of lists of strings corresponding to potential paths
+"""
+11 21 31
+12 22 32
+13 23 33
 
-keypadbot = Robot("keypad")
-arrowbot1 = Robot("arrows")
-arrowbot2 = Robot("arrows")
+return 112131, 112132, 113233, 112231, etc...
+"""
+def getAllSequentialCombosFrom2dList(l):
+    if len(l) == 1:
+        return l[0]
+    subsequentCombos = getAllSequentialCombosFrom2dList(l[1:])
+    combos = []
+    for option in l[0]:
+        for subsequentCombo in subsequentCombos:
+            combos.append(option+subsequentCombo)
+    return combos
 
-robots = (keypadbot, arrowbot1, arrowbot2)
+def getShortestSequences(sequences):
+    minlength = min([len(s) for s in sequences])
+    return [s for s in sequences if len(s) == minlength]
 
+#TODO this may soon become intractable
+@cache
+def getAllShortestPathsForSequence(sequence, mapkey, startsymbol="A"): #TODO make sure that first element of sequence is 
+    keysequences = [] #will hold a list of possible shortest paths
+    for nextsymbol in sequence:
+        paths = getAllPathsBetweenSymbols(startsymbol, nextsymbol, mapkey) #list of paths between symbols
+        startsymbol = nextsymbol
+        keysequences.append(paths)
+    #answer could be ANY combination of these paths in order :(
+    possibleSequences = getAllSequentialCombosFrom2dList(keysequences)
+    return getShortestSequences(possibleSequences)
 
+def getUserSequences(sequence):
+    usersequences = []
+    keypadsequences = getAllShortestPathsForSequence(sequence, "keypad")
+    for keypadsequence in keypadsequences:
+        robot1sequences = getAllShortestPathsForSequence(keypadsequence, "arrows")
+        for robot1sequence in robot1sequences:
+            robot2sequences = getAllShortestPathsForSequence(robot1sequence, "arrows")
+            usersequences.extend(robot2sequences)
+    return getShortestSequences(usersequences)
 
 filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt")
-filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample.txt")
+# filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample.txt")
 
 with open(filename) as f:
     sequences = [line.strip() for line in f.readlines()]
@@ -114,7 +116,7 @@ def getSequenceNumber(line):
     return int(line.replace("A", ""))
 
 def calcSequenceComplexity(sequence):
-    commands = rc.getCommandsForSequence(sequence)
+    commands = getUserSequences(sequence)[0]
     number = getSequenceNumber(sequence)
     print(sequence, number, len(commands))
     return number*len(commands)
@@ -123,8 +125,3 @@ sum = 0
 for sequence in sequences:
     sum += calcSequenceComplexity(sequence)
 print(sum)
-
-#TODO need to make several fixes:
-# need to make sure that the robot does not pass over the gap -- have one wayfinder for the keypad and one for the arrows
-# need to return all possible shortest routes rather than just one
-# robots need to consider all possible routes rather than just one, return all possible shortest
