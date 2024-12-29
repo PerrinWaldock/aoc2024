@@ -31,8 +31,6 @@ enddirs = [(0,1),(0,-1),(1,0),(-1,0)]
 def canMoveTo(place):
     return place == "."
 
-bestscore = {(start, startdir): 0}
-
 def addtuple(a, b):
     return (a[0]+b[0], a[1]+b[1])
 
