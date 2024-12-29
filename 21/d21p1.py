@@ -7,6 +7,9 @@ import itertools
 import sys
 from functools import cache
 
+"""
+TODO revert to previous version (see github), but add different path finding for keypad vs arrows
+"""
 
 import dataclasses
 from typing import Any
@@ -18,64 +21,86 @@ keypad = np.array([	['7', '8', '9'],
 arrows = np.array([['', '^', 'A'],
                    ['<', 'v', '>']])
 
+maps = {"keypad": keypad, "arrows": arrows}
+
 def createLookup(arr):
     symbols = set(np.ravel(arr))
     return {s: tuple(np.argwhere(arr == s)[0]) for s in symbols}
 
 def addtuple(a, b):
     return (a[0]+b[0], a[1]+b[1])
+
 def subtracttuple(a, b):
     return (a[0]-b[0], a[1]-b[1])
-
-#TODO create lookup for distances + keys
 
 def getDistance(a, b):
     return int(np.abs(a[0]-b[0]) + np.abs(a[1]-b[1]))
 
+#TODO may be able to just pick a best path?
 @cache
-def getCommandsForDelta(delta):
-    directions = ""
+def getAllPathsBetween(start, end, mapkey):
+    if maps[mapkey][*start] == "" or maps[mapkey][*end] == "":
+        return []
+    elif start == end:
+        return ["A"]
+    delta = subtracttuple(end, start)
+    returnPaths = deque()
     if delta[0] > 0:
-        directions += "v"*delta[0]
+        newstart = addtuple(start, (1,0))
+        returnPaths.extend(["v"+p for p in getAllPathsBetween(newstart, end, mapkey)])
     elif delta[0] < 0:
-        directions += "^"*-delta[0]
+        newstart = addtuple(start, (-1,0))
+        returnPaths.extend(["^"+p for p in getAllPathsBetween(newstart, end, mapkey)])
     if delta[1] > 0:
-        directions += ">"*delta[1]
+        newstart = addtuple(start, (0,1))
+        returnPaths.extend([">"+p for p in getAllPathsBetween(newstart, end, mapkey)])
     elif delta[1] < 0:
-        directions += "<"*-delta[1]
-    return directions + "A"
+        newstart = addtuple(start, (0,-1))
+        returnPaths.extend(["<"+p for p in getAllPathsBetween(newstart, end, mapkey)])
+    return returnPaths    
 
 class Robot:
-    def __init__(self, array, startsymbol='A'):
-        self.array = array
-        self.lookup = createLookup(array)
+    def __init__(self, mapkey, startsymbol='A'):
+        self.mapkey = mapkey
+        self.lookup = createLookup(maps[mapkey])
         self.position = self.lookup[startsymbol]
     
-    #turns number or arrow into sequence of arrows
-    def getCommandsTo(self, symbol):
+    #turns number or arrow into sets of sequences of arrows.
+    def getAllCommandsTo(self, symbol):
         destination = self.lookup[symbol]
-        delta = subtracttuple(destination, self.position)
+        retval = getAllPathsBetween(self.position, destination, self.mapkey)
         self.position = destination
-        return getCommandsForDelta(delta)
+        return retval
     
-    def getCommandsForSequence(self, sequence):
-        return ''.join([self.getCommandsTo(s) for s in sequence])
-    
-    
-class RobotCollection:
-    def __init__(self, robots):
-        self.robots = robots
-    
-    def getCommandsForSequence(self, sequence):
-        for robot in self.robots:
-            sequence = robot.getCommandsForSequence(sequence)
-        return sequence
+    #don't want to do all at once because many extra paths will be generated
 
-keypadbot = Robot(keypad)
-arrowbot1 = Robot(arrows)
-arrowbot2 = Robot(arrows)
+#TODO this can be modified to be cached?
+@cache
+def getShortestCommandsForSymbol(robots, symbol):
+    commandsequences = robots[0].getAllCommandsTo(symbol)
+    if len(robots) == 1:
+        return commandsequences
+    newsequences = []
+    for sequence in commandsequences:
+        for s in sequence:
+            newsequences.extend(getShortestCommandsForSymbol(robots[1:], s)) #TODO need to think VERY carefully about whether robot positions are being preserved correctly
+    shortestlength = min([len(sequence) for sequence in newsequences])
+    return [sequence for sequence in newsequences if len(sequence) == shortestlength]
 
-rc = RobotCollection([keypadbot, arrowbot1, arrowbot2])
+def getShortestCommandsForSequence(robots, sequence):
+    #TODO do the same as above but for the full sequence
+    #TODO think carefully about whether robot positions are preserved. Start and End are the same, but will the middles cause problems?
+    #need to reset robot positions after each?
+    possiblesequences = []
+    for s in sequence:
+        possiblesequences.append(getShortestCommandsForSymbol(robots, s))
+    #count min length for each sequence?
+
+keypadbot = Robot("keypad")
+arrowbot1 = Robot("arrows")
+arrowbot2 = Robot("arrows")
+
+robots = (keypadbot, arrowbot1, arrowbot2)
 
 
 
