@@ -17,9 +17,9 @@ def main():
     #filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample2.txt")
     
     seeds = deque()
-    with open(filename) as f:
+    with open(filename) as f: 
         for line in f:
-            seeds.append(int(line))   
+            seeds.append(int(line))  
             
     lookups = deque()
     for seed in seeds:
@@ -116,9 +116,3 @@ def getProfitFromSequence(sequence, lookups):
 
 if __name__ == "__main__":
     main()
-    
-"""
-    TODO
-        figure out why sample code isn't working
-        create a dict for each sequence, cache the price for first occurrence of each sequence, try all sequences
-"""
