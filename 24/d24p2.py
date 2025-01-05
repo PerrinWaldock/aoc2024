@@ -37,14 +37,20 @@ def main():
                 allwires.add(in1)
                 allwires.add(in2)
                 allwires.add(output)
-    swapOutputs("z15", "dnt")
-    swapOutputs("z30", "gwc")
-    swapOutputs("gdf", "mcm")
-    swapOutputs("z05", "jst")
-    gatelookup = generateGateLookup(gates)
-    print(",".join(sorted(["z05", "z15", "z30","gdf","dnt","gwc","mcm","jst"])))
-    
-    checkAdders()
+    suspects = checkAdders()
+    swapPairs = getPairs(suspects)
+    for pair in swapPairs:
+        print("Swapping", *pair)
+        swapOutputs(*pair)
+    newSuspects = checkAdders()
+    if len(newSuspects) == 0:
+        print(",".join(sorted(suspects)))
+    else:
+        print("need to refine code!")
+
+def getPairs(sequence):
+    sequence = iter(sequence)
+    return [(s, next(sequence)) for s in sequence]
 
 def generateGateLookup(gates):
     gatelookup = {}
@@ -65,26 +71,31 @@ def getConnectedGateTypes(g):
     return set([g.op for g in connectedGates])
 
 def checkAdders():
+    global gatelookup
+    gatelookup = generateGateLookup(gates)
     carry = None
+    suspectOutputs = list()
+    
+    #TODO check 0th bit
     for n in range(1,45):
-        retval = checkAdder(n, carry)
-        carry = retval
+        carry, suspects = checkAdder(n, carry)
+        if len(suspects) > 0:
+            suspectOutputs.extend(suspects)
+    return suspectOutputs
 
 def checkAdder(number, c=None):
     """
     are xn and yn connected to xor and and
-		is xor connected to xor and and
-			is xor connected to output
-			is and connected to or
-				or's output connected to next carry
-				is and's other input equal to the carry
-		is and connected to above or
+        is xor connected to xor and and
+            is xor connected to output
+            is and connected to or
+                or's output connected to next carry
+                is and's other input equal to the carry
+        is and connected to above or
     """
-    # TODO test
     
     suspectOutputs = []
     
-    #should return carry, return None if not sure
     x = f"x{number:02}"
     y = f"y{number:02}"
     z = f"z{number:02}"
@@ -95,17 +106,17 @@ def checkAdder(number, c=None):
         if set([g.op for g in gatelookup[y]]) != {"XOR", "AND"}:
             print(number, "Y suspect", gatelookup[x])
             suspectOutputs.append(list(gatelookup[y])[0].out)
-        #return None
+
     firstXor = [g for g in gatelookup[x] if g.op == "XOR"][0]
     firstAnd = [g for g in gatelookup[x] if g.op == "AND"][0]
     
     if getConnectedGateTypes(firstXor.out) != {"XOR", "AND"}:
         print(number, "first XOR", firstXor, "does not connect to XOR and AND", getConnectedGateTypes(firstXor.out))
         suspectOutputs.append(firstXor.out)
-        #return None
+
     secondXors = [g for g in gatelookup[firstXor.out] if g.op == "XOR"]
     if len(secondXors) == 1:
-        secondXor = secondXors[0] #TODO if fails try backup identification from carry
+        secondXor = secondXors[0]
     elif c is not None:
         secondXors = [g for g in gatelookup[c] if g.op == "XOR"]
         secondXor = secondXors[0]
@@ -120,32 +131,30 @@ def checkAdder(number, c=None):
     if secondXor.out != z:
         print(number, "second XOR does not connect to output", secondXor)
         suspectOutputs.append(secondXor.out)
-        #return None
 
     if firstAnd.out not in gatelookup or list(gatelookup[firstAnd.out])[0].op != "OR": #TODO fix
         print(number, "first AND does not connect to OR", firstAnd)
         suspectOutputs.append(firstAnd.out)
-        #return None
     
     if secondAnd.out not in gatelookup or list(gatelookup[secondAnd.out])[0].op != "OR":
         print(number, "second AND does not connect to OR", secondAnd)
         suspectOutputs.append(secondAnd.out)
-        #return None
     
     if firstAnd.out in gatelookup and secondAnd.out in gatelookup and list(gatelookup[firstAnd.out])[0] != list(gatelookup[secondAnd.out])[0]:
         print(number, "first and second AND connected to different gates", list(gatelookup[firstAnd.out])[0], list(gatelookup[secondAnd.out])[0])
-        #return None
     
     if secondAnd.out in gatelookup:
         carrywire = list(gatelookup[secondAnd.out])[0].out
     elif firstAnd.out in gatelookup:
         carrywire = list(gatelookup[firstAnd.out])[0].out
+    else:
+        carrywire = None
     
     if c is not None and (c not in gatelookup or gatelookup[c] != {secondAnd, secondXor}):
         print(number, "bad carry", c)
-        return None
+        suspectOutputs.append(c)
     
-    return carrywire
+    return carrywire, suspectOutputs
     
 def swapOutputs(out1, out2):
     g1 = gates[out1]
