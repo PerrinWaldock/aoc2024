@@ -1,0 +1,76 @@
+d24p2 notes
+
+for a basic adder, expect to have 2X XOR gates, 2X AND gates, 1X OR gate for each input pair -> 271 gates
+        3x intermediate pairs per input pair: 135
+        io: 2*45 +46 = 136
+        271 gates
+        so, there are an extra 312 - 271 = 41 wires stuck in there somewhere...
+    
+solving by hand shows that dnt and z15 need to be fixed to get z15 to work
+	can we assume that all are working
+
+    looks like z15 isn't connected to an overflow wire and z45 isn't connected to x45 or y45
+    4 pairs need swap:
+        1? mystery overflow to z15
+            this must be caused by inputs being duplicated, so probably need two different inputs
+                try all combinations of swapping two wires from outside of the set of gates to inside of the set of gates?
+                want to see what fixes the dependencies
+        2? z45 from x45 and y45
+        what is one remaining?
+    
+    functions:
+        generate which wires connect to which gates
+        find dependencies of every wire, not just the outputs
+    
+    adder fix:
+        y15 AND x15 -> z15; gate needs to go to the OR that feeds the z16 carry
+            need to find the dependencies of EVERY wire to isolate options
+                this gate's output connects to
+        x15 XOR y15 -> dvj, dvj needs to be connected to the XOR gate that produces z15 and is fed from the x14, y14 carry
+            currently:
+                vhr XOR dvj -> dnt
+                vhr AND dvj -> ckf
+                hdb OR rkf -> vhr
+                    rfk is the z14carry ?
+        how to write a function:
+            try to go through the tree to check gates, inputs are as expected
+                if something not as expected, try swapping outputs until it is as expected?
+
+        
+        need to find:
+            swap z15: wires that is an input to the z15 carry
+                z15 carry must be produced from OR with inputs from two AND gates
+                    one AND: x15 AND y15
+                    one AND: (x15 XOR y15) AND z14Carry
+                        z14 carry must be vhr
+                            hdb OR rkf -> vhr
+
+                current z15 carry must be fed from dependencies of z16 to avoid problems
+                    jpj XOR scq -> z16
+                        x16 XOR y16 -> scq
+
+                        jpj AND scq -> swj : jpj IS the z15 carry
+                        dnt OR ckf -> jpj
+                            need z15 swapped with dnt or ckf?
+            swap dvj: wires that is an output of an XOR with a dependencies of x14, y14 but not x15, y15
+ 
+
+
+                
+    nominal:
+        TODO see if can write a program that traverses the circuit, adds a bit of the adder
+            e.g. start with 
+        y01 XOR x01 -> nsc
+        y01 AND x01 -> bkg
+        rpj AND nsc -> gpt
+        rpj XOR nsc -> z01
+        gpt OR bkg -> gsh
+
+check each pair of inputs
+	are xn and yn connected to xor and and
+		is xor connected to xor and and
+			is xor connected to output
+			is and connected to or
+				or's output connected to next carry
+				is and's other input equal to the carry
+		is and connected to above or
