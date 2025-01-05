@@ -77,10 +77,13 @@ def checkAdders():
     suspectOutputs = list()
     
     #TODO check 0th bit
-    for n in range(1,45):
+    BITS = 45
+    for n in range(1,BITS):
         carry, suspects = checkAdder(n, carry)
         if len(suspects) > 0:
             suspectOutputs.extend(suspects)
+    if carry != f"z{BITS:02}":
+        suspectOutputs.append(carry)
     return suspectOutputs
 
 def checkAdder(number, c=None):
