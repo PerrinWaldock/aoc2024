@@ -1,16 +1,9 @@
-import numpy as np
 from collections import deque
 import re
 import os
 from tqdm import tqdm
-import itertools
-import sys
-
-import dataclasses
-from typing import Any
 
 #note: this only works because the program iterates through A three digits at a time. Will not work for an arbitrary program
-
 def main():
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt")
     # filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "sample4.txt")

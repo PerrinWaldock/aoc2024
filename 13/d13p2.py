@@ -2,11 +2,7 @@ import numpy as np
 from collections import deque
 import re
 import os
-from tqdm import tqdm
-import itertools
-
 import dataclasses
-from typing import Any
 
 ACOST = 3
 BCOST = 1

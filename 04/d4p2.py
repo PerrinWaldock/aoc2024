@@ -1,6 +1,5 @@
 import numpy as np
 from collections import deque
-import re
 import os
 
 filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt")

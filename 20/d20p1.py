@@ -1,13 +1,6 @@
 import numpy as np
 from collections import deque
-import re
 import os
-from tqdm import tqdm
-import itertools
-import sys
-
-import dataclasses
-from typing import Any
 
 """
 note: there is only one path through the track. So

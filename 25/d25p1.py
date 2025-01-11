@@ -1,14 +1,6 @@
 import numpy as np
-from collections import deque, namedtuple, Counter
-import re
+from collections import deque, Counter
 import os
-from tqdm import tqdm
-import itertools
-import sys
-from functools import cache
-import re
-import dataclasses
-from typing import Any
 
 MAX_HEIGHT = 5
 

@@ -1,14 +1,7 @@
-import numpy as np
 from collections import deque, namedtuple
-import re
 import os
-from tqdm import tqdm
-import itertools
-import sys
 from functools import cache
 import re
-import dataclasses
-from typing import Any
 
     
 Gate = namedtuple('Gate', ['in1', 'in2', 'op', 'out'])

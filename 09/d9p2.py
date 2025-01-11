@@ -1,9 +1,7 @@
 import numpy as np
 from collections import deque
-import re
 import os
 from tqdm import tqdm
-import itertools
 
 # would be faster to only store the disk as a number of contiguous blocks
 

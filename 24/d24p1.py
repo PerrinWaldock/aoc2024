@@ -1,14 +1,5 @@
-import numpy as np
-from collections import deque, namedtuple
-import re
+from collections import namedtuple
 import os
-from tqdm import tqdm
-import itertools
-import sys
-from functools import cache
-import re
-import dataclasses
-from typing import Any
 
 def main():
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), "input.txt")
